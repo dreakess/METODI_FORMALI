@@ -1,0 +1,37 @@
+module Code.Demo where
+
+
+open import Library.Equality
+open import Library.Equality.Reasoning
+open import Library.Nat
+open import Library.Nat.Properties
+
+
+-- def. del fibonacciano in tempo O(ϕ) dove phi dove phi e la sezione aurea
+
+fibo : ℕ → ℕ
+fibo 0 = 0
+fibo 1 = 1
+fibo (succ (succ k)) = fibo k + fibo (succ k)
+
+-- ctrl c + ctrl n = debug del programma
+-- ctrl c + ctrl l = load del programma
+
+-- def. del fibonacciano im tempo O(n)
+
+-- isomorfismo, ovvero quello che si trova nella funzione di prima
+-- si ritrova anche nella seconda funzione
+
+-- funzione di wrap
+
+fibo-from : ℕ → ℕ → ℕ → ℕ  
+fibo-from m n 0 = m
+fibo-from m n 1 = n
+fibo-from m n (succ (succ k)) = fibo-from n (m + n) (succ k)
+
+-- confluenza rispettata: data dal fatto che dopo = ho k più piccolo che al primo membro
+
+-- def. del fibonacciano fast-fibo in tempo O(n)
+
+fast-fibo : ℕ → ℕ
+fast-fibo n = fibo-from 0 1 n

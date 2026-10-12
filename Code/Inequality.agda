@@ -1,0 +1,128 @@
+module  Code.Inequality where
+
+open import Library.Bool
+open import Library.Nat
+open import Library.Equality
+open import Library.Logic
+
+
+
+
+
+
+{-
+  Notazione : ≤ si scrive /<= oppure /le
+
+                                   x ≤ y
+  [le-zero] -----   [le-succ] ---------------
+            0 ≤ x             succ x ≤ succ y
+
+  coincide con la relazione def. da:
+  x ≤ y ⇔ ∃ z . x + z == y
+
+  
+
+-}
+
+
+data _≤_ : ℕ → ℕ → Set where
+  le-zero : ∀{x : ℕ} → 0 ≤ x
+  le-succ : ∀{x y : ℕ} → x ≤ y → succ x ≤ succ y
+
+_ : 2 ≤ 3
+_ = le-succ (le-succ le-zero)
+
+
+-- Def. matematica della relazione ≤ su ℕ
+
+
+infix 4 _≤_ 
+
+_≤'_ : ℕ → ℕ → Set
+x ≤' y = ∃[ z ] x + z == y
+
+-- Il sistema formale che definisce ≤ in termini delle regole le-zero
+-- e le-succ è corretto (sound)
+
+le-sound : ∀{x y : ℕ} → x ≤ y → x ≤' y
+le-sound {y = y} le-zero = y , refl
+le-sound (le-succ x≤y) with le-sound x≤y
+... | z , eq = z , cong succ eq
+
+
+-- with :: siano z ed eq la prova del fatto che x ≤ y
+
+
+-- ho usato la cong perché voglio sostituire x + z con y in succ e avere così l'uguaglianza succ y == succ y
+
+{-
+
+  Per ip. induttiva è che x ≤ y → ∃ z . x + z == y 
+  
+  succ (x + z) == y
+
+-}
+
+
+-- la def. formale di ≤ è anche completa, nel senso che
+-- ogni volta che x ≤'y l'asserto x ≤ y è derivabile
+
+
+
+le-complete : ∀{x y : ℕ} → x ≤' y → x ≤ y
+le-complete (z , refl) = lemma
+  where
+    lemma : ∀{x y : ℕ} → x ≤ x + y
+    lemma {zero} = le-zero
+    lemma {succ x} = le-succ lemma
+
+
+-- La relazione ≤ è un ordine parziale, dobbiamo dim. che è riflessiva, antisimmetrica e transitiva 
+
+le-refl : ∀{x : ℕ} → x ≤ x
+le-refl {zero} = le-zero
+le-refl {succ x} = le-succ le-refl
+
+
+-- antisimmetria:
+
+le-antisymm : ∀{x y : ℕ} → x ≤ y → y ≤ x → x == y
+le-antisymm le-zero le-zero = refl
+le-antisymm (le-succ hyp1) (le-succ hyp2) = cong succ (le-antisymm hyp1 hyp2)
+
+
+--ho usato il cong con il ?, (uso il cong proprio perché al goal voglio appicciargli succ)
+
+
+-- transitività:
+
+le-trans : ∀{x y z : ℕ} → x ≤ y → y ≤ z → x ≤ z
+le-trans le-zero le-zero = le-zero
+le-trans le-zero (le-succ hyp2) = le-zero
+le-trans (le-succ hyp1) (le-succ hyp2) = le-succ (le-trans hyp1 hyp2)
+
+-- Dimostrare che ≤ è una pre-congruenza (ossia la somma è monotona nel secondo argomento)
+
+≤-cong : ∀{x y z : ℕ} → x ≤ y → x + z ≤ y + z
+≤-cong le-zero = {!!}
+≤-cong (le-succ hyp1) = le-succ (≤-cong hyp1)
+
+-- La relazione ≤ è totale :
+
+le-total : ∀{x y : ℕ} → x ≤ y ∨ y ≤ x
+le-total {zero} {zero} = no le-zero
+le-total {zero} {succ y} = no le-zero
+le-total {succ x} {zero} = yes le-zero
+le-total {succ x} {succ y} with le-total {x} {y}
+... | inl x≤y = inl (le-succ x≤y)
+... | inr y≤x = inr (le-succ y≤x)
+
+
+
+
+
+
+
+
+
+

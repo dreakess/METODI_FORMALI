@@ -1,0 +1,213 @@
+module Code.Lists where
+
+open import Library.Fun
+open import Library.Equality
+open import Library.Equality.Reasoning
+open import Library.Nat
+
+
+-- def. delle liste semplici di valori di tipo A
+
+-- A è una dipendenza, posto che A è un tipo allora List ha tipo ..
+
+data List (A : Set) : Set where
+     [] : List A
+     _::_ : A → List A → List A
+     
+infixr 5 _::_
+
+
+ll : List ℕ
+ll = 0 :: 1 :: 2 :: []
+
+
+-- def. la funzione length
+
+length : ∀{A : Set} → List A → ℕ
+length        [] = zero
+length (x :: xs) = succ(length xs)
+
+
+_++_ : ∀{A : Set} → List A → List A → List A
+[] ++ ys = ys
+-- pensiamo in termini dichiarativi, tipo SQL, ovvero programmi e descrivi il risultato
+(x :: xs) ++ ys = x :: xs ++ ys
+
+
+infixr 5 _++_
+
+-- voglio dim. che la lunghezza di due liste è uguale alla somma delle concatenazione delle due
+
+length-++ : ∀{A : Set} (xs ys : List A) → length (xs ++ ys) == length xs + length ys
+length-++ [] ys = refl
+length-++ (x :: xs) ys rewrite(length-++ xs ys) = refl
+
+
+[_] : ∀{A : Set} → A → List A
+[ x ] = x :: [] 
+
+-- Inversione di una lista
+
+reverse : ∀ {A : Set} → List A → List A
+reverse [] = []
+reverse (x :: xs) = reverse xs ++ [ x ]
+
+-- tanto inefficiente, infatti ha complessità o(n²)
+
+
+{-
+   reverse( 0 :: 1 :: 2 :: [] ) == 2 :: 1 :: 0 :: []
+                                = (2 :: 1 :: []) ++ 0
+                                = reverse (1 :: 2 :: []) :: (0 :: [])
+
+   reverse (1 :: 2 :: []) = 2 :: 1 :: [] ipotesi induttiva
+
+   T(n) = n - 1 + T(n - 1) = O(n²)
+
+   
+-}
+
+-- vogliamo dim. che reverse è involutiva
+
+-- che quando lo compongo con se stesso, mi restituisce l'id
+
+
+++-unit-r : ∀{A : Set} → (xs : List A) -> xs == xs ++ [] 
+++-unit-r [] = refl
+++-unit-r (x :: xs) rewrite(symm (++-unit-r xs) ) = refl 
+
+
+
+++-assoc : ∀{A : Set} → (xs ys zs : List A) → (xs ++ ys) ++ zs == xs ++ (ys ++ zs)
+++-assoc [] ys zs = refl
+++-assoc (x :: xs) ys zs = cong (x ::_) (++-assoc xs ys zs)
+
+
+
+reverse-++ : ∀{A : Set} → (xs ys : List A) → reverse (xs ++ ys) == reverse(ys) ++ reverse(xs)
+reverse-++ [] ys rewrite symm (++-unit-r(reverse ys)) = refl
+reverse-++ (x :: xs) ys rewrite reverse-++ xs ys
+                                | symm (++-assoc (reverse ys) (reverse xs) (x :: [])) = refl  
+  
+
+-- vogliamo def. una funzione reverse che sia lineare
+
+reverse-onto : ∀{A : Set} → List A → List A → List A
+reverse-onto [] ys = ys
+reverse-onto (x :: xs) ys = reverse-onto xs (x :: ys)
+
+fast-reverse : ∀{A : Set} → List A → List A
+fast-reverse xs = reverse-onto xs []
+
+-- vogliamo dim. che nonostante le complessità differenti, possiamo dim. che gli algo di reverse e fast sono uguali o altre eventuali varianti
+
+
+lemma-reverse-onto : ∀{A : Set} (xs ys : List A) → reverse-onto xs ys == (reverse xs) ++ ys
+lemma-reverse-onto [] ys = refl
+lemma-reverse-onto (x :: xs) ys =
+  begin
+    reverse-onto (x :: xs) ys ==⟨⟩
+    reverse-onto xs (x :: ys) ==⟨ lemma-reverse-onto xs (x :: ys) ⟩
+    reverse xs ++ ([ x ] ++ ys) ==⟨ symm (++-assoc (reverse xs) [ x ] ys) ⟩
+    (reverse xs ++ x :: []) ++ ys
+  end
+    
+
+ {-
+    reverse xs ++ (x :: ys) ==⟨⟩
+    reverse xs ++ ([ x ] ++ ys) ==⟨ ++-assoc (reverse xs) [ x ] ys ⟩
+    (reverse xs ++ [ x ]) ++ ys
+  end
+-}
+
+--   reverse x
+--  end
+
+fast-reverse-correct : ∀{A : Set}(xs : List A) → fast-reverse xs == reverse xs 
+fast-reverse-correct xs =
+  begin
+    fast-reverse xs ==⟨⟩
+    reverse-onto xs [] ==⟨ lemma-reverse-onto xs [] ⟩
+    reverse xs ++ [] ⟨ ++-unit-r (reverse xs) ⟩==
+    reverse xs
+  end
+
+
+
+-- non ci basta fare induzione su xs ma dobbiamo avere il rafforzamento dell'ipotesi induttiva
+
+
+
+{-
+  reverse xs ys
+  prendo un elemento della testa di xs e lo inserisco nella testa di ys
+  la ys è la lista [] che utilizzo per inserire gli elementi e averli al contrario rispetto alla prima lista come parametro
+  (x :: ys) → accumulazione sul parametro
+
+  è una ricorsione di coda, poiché viene effettuato prima l' accumulazione e poi viene richiamato il parametro
+-}
+
+
+
+-- def. la funzione map
+-- es: map succ [0, 1, 2] = [succ 0, succ 1, succ 2]
+
+
+
+map : ∀{ A B : Set} → (A → B) → List A → List B
+map f [] = []
+map f (x :: xs) = f x :: (map f xs) 
+
+
+map-length : ∀{ A B : Set} (f : A → B) (xs : List A) → length(map f xs) == length xs
+map-length f [] = refl
+map-length f (x :: xs) = cong succ (map-length f xs)
+
+
+
+map-++ : ∀{ A B : Set} (f : A → B) (xs ys : List A) → map f (xs ++ ys) == (map f xs) ++ (map f ys)
+map-++ f [] ys = refl
+map-++ f (x :: xs) ys = cong (λ z → f x :: z) (map-++ f xs ys)
+
+
+
+-- rango: num di occorrenze di una certa expr a sinistra dell'operatore più a sinistra
+
+
+map-length2 : ∀{A B : Set} (f : A → B) (xs : List A) → length (map f xs) == length xs
+map-length2 f [] = refl
+map-length2 f (x :: xs) rewrite map-length2 f xs = refl  
+
+
+map-++2 : ∀{A B : Set} (f : A → B) (xs ys : List A) →  map f (xs ++ ys) == map f xs ++ map f ys
+map-++2 f [] ys = refl
+map-++2 f (x :: xs) ys rewrite map-++2 f xs ys = refl
+
+
+map-reverse-2 : ∀{A B : Set} (f : A -> B) (xs : List A) -> map f (reverse xs) == reverse (map f xs)
+map-reverse-2 f [] = refl
+map-reverse-2 f (x :: xs) rewrite map-++2 f (reverse xs) [ x ]
+                          | map-reverse-2 f (xs) =  refl
+
+
+map-compos : ∀{A B C : Set} (f : B → C)(g : A → B) (xs : List A) → (map f ∘ map g) xs == map (f ∘ g) xs
+map-compos f g [] = refl
+map-compos f g (x :: xs) rewrite map-compos f g xs = refl
+
+
+fast-reverse-correct2 : ∀{A : Set}(xs : List A) → fast-reverse xs == reverse xs
+fast-reverse-correct2 [] = refl
+fast-reverse-correct2 (x :: xs) rewrite fast-reverse-correct2 xs
+                                | lemma-reverse-onto xs [ x ] = refl
+
+
+length-++2 : ∀{A : Set} (xs ys : List A) → length (xs ++ ys) == length xs + length ys
+length-++2 [] ys = refl
+length-++2 (x :: xs) ys rewrite length-++2 xs ys = refl
+
+
+lemma-reverse-onto2 : ∀{A : Set} (xs ys : List A) → reverse-onto xs ys == (reverse xs) ++ ys
+lemma-reverse-onto2 [] ys = refl
+lemma-reverse-onto2 (x :: xs) ys rewrite lemma-reverse-onto2 xs (x :: ys)
+                                 | ++-assoc (reverse xs) [ x ] ys = refl
+

@@ -1,0 +1,6 @@
+module Code.Equalities where
+
+open import Library.Bool
+open import Library.Nat
+open import Library.List
+open import Library.Logic

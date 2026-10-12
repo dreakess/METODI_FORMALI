@@ -1,0 +1,108 @@
+module Code.Boolean where
+
+-- Definizioni del tipo Bool e delle funzioni booleane elementari
+
+
+data Bool : Set where
+  true : Bool
+  false : Bool
+
+
+not : Bool → Bool
+not true = false
+not _ = true
+
+
+and : Bool → Bool → Bool
+and true y = y
+and _  _ = false
+
+or : Bool → Bool → Bool
+or y true = true
+or true y = true
+or _ _    = false
+
+xor : Bool → Bool → Bool
+xor true y = false
+xor y true = false
+xor _ _    = true
+
+_&&_ : Bool → Bool → Bool
+true && y = y
+_    && _ = false
+
+_||_ : Bool → Bool → Bool
+false || y   = y
+true  || _   = true
+
+infixl 6 _||_
+
+-- li imposto il livello di precedenza
+
+-- infixl <precedenza> <quale operatore>
+infixl 6 _&&_
+-- devo mettergli le parentesi per permettergli di capire come associare
+
+test : Bool
+test = true && false && true
+
+-- Proprietà delle funzioni booleane
+
+-- Libreria che definisce l'operatore _==_ ( _=_ nella libreria standard  )
+
+open import Library.Equality
+
+-- i teoremi sono funzioni con il tipo uguale alla tesi;
+
+-- Teorema : true == true
+
+-- il tipo di true-eq ci rapp. il tipo della funzione ma per noi è una proposizione
+true-eq : true == true
+-- logica equazionale → ho usato l'assioma della riflessività, ovvero scrivendo refl 
+true-eq = refl 
+
+-- se avessi usato la lacuna(buco verde), usavo ctrl + c + ctrl + a
+
+false-eq : false == false
+false-eq = refl
+
+-- Teorema : not true == false
+
+not-true-eq : not true == false
+not-true-eq = refl
+
+
+-- identità a meno di riduzione ad una forma normale e non sintattica
+
+-- /all = ∀
+
+-- Teorema : not è involutivo, ossia ∀(x : Bool) . not (not x) == x 
+
+not-not-true : not (not true) == true
+not-not-true = refl
+
+not-inv : ∀(x : Bool) → not (not x) == x
+
+-- faccio (ctrl + c ) x 2 e metto y per vedere i casi possibili 
+
+not-inv true = refl
+not-inv false = refl
+
+-- da errore se metto refl perché è già in forma normale e quindi non riesco a ridurlo
+-- il tipo dopo la freccia non ha un significato autonomo ma dipende funzionalmente da quell che viene prima della freccia
+
+
+-- Teorema : _&&_ è commutatativo, ossia ∀(x y : Bool) . x && y == y && x
+
+&&-comm : ∀(x y : Bool) → x && y == y && x
+&&-comm true true = refl
+&&-comm true false = refl
+&&-comm false true = refl
+&&-comm false false = refl
+
+-- Teorema : legge di De Morgan
+
+not-&& : ∀(x y : Bool) → not (x && y) == not x || not y 
+not-&& true _ = refl
+not-&& false _ = refl
+

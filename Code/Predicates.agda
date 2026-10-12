@@ -1,0 +1,126 @@
+module Code.Predicates where
+
+open import Library.Fun
+open import Library.Bool
+open import Library.Nat
+open import Library.List
+open import Library.Logic
+open import Library.Logic.Laws
+open import Library.Equality
+
+-- che cosa sono i predicati?
+-- il predicato è una prop. che non è saturata, cioè che dipende dal parametro
+
+
+{- Un predicato P : A → Set dove Set = Prop  -}
+
+
+-- Definizione come programma di Even (Even non ha il tipo di significato
+-- ma ha come tipo Bool)
+
+Even-p : ℕ → Bool
+Even-p zero = true
+Even-p (succ zero) = false
+Even-p (succ (succ x)) = Even-p x
+
+-- la mia prima def. del predicato
+
+
+-- stiamo def. half x come la parte intera inferiore di x / 2
+half : ℕ → ℕ
+half zero = zero
+half (succ zero) = zero
+half (succ (succ x)) = succ (half x)
+
+theorem-p : ∀ {x : ℕ} → (ev : Even-p x == true) → x == half x * 2
+theorem-p {zero} ev = refl
+theorem-p {succ (succ y)} ev = cong (succ ∘ succ) (theorem-p ev) 
+
+
+-- ∘ è la composizione matematica
+
+
+-- Def. matematica di Even
+
+Even-m : ℕ → Set
+Even-m x = ∃[ y ] x == y * 2
+
+
+_ : Even-m 4
+_ = 2 , refl
+
+
+-- ora voglio dim. che 1 non è un numero pari
+
+
+not-even-1 : ¬ Even-m 1
+not-even-1 (zero , ())
+-- ho sostiuito y con () proprio per def. il fatto che non è vera l'evidenza di
+-- y
+not-even-1 (succ x , ())
+
+
+-- anche per il secondo caso succ succ di qualsiasi cosa è sicuramente
+-- > 1 e quindi y è falsa comunque
+
+
+_ : ¬ Even-m 1
+_ = λ{ (zero , ()) ; (succ x , ()) }
+
+
+theorem-r : ∀{x : ℕ} → (ev : Even-m x) → x == half x * 2
+theorem-r (x , refl) = cong (_* 2) (lem x)
+  where
+    lem : ∀ x → x == half (x * 2) 
+    lem zero = refl
+    lem (succ x) rewrite symm (lem x) = refl
+
+
+-- def. di Even come sistema di inferenza
+
+{-                                             Even-i x
+  even-zero ------------------   even-succ ---------------
+            Even-i           0             Even-i  (2 + x)
+-}
+
+data Even-i : ℕ → Set where
+  even-zero : Even-i 0
+  even-succ : ∀{x : ℕ} → Even-i x → Even-i (2 + x)
+
+-- ho def. even-zero come assioma mentre even-succ ho quantificato su x per avere la famosa premessa su x
+
+_ : Even-i 4
+_ = even-succ (even-succ even-zero)
+
+
+{- 
+    proof term:       
+
+       even-zero  ---------------
+                     Even-i 0
+       even-succ  ---------------
+                     Even-i 2 
+       even-succ  ---------------
+                     Even-i 4 
+-}
+
+_ : ¬ Even-i 1
+_ = λ ()
+
+_ : ¬ Even-i 3
+_ = λ { (even-succ ())}
+
+
+-- qundo viene def. un predicato con data e davanti ho una simbolo funzionale →
+-- significa che il tipo Even-i è un tipi di dato induttivo o famiglia induttiva di predicati
+
+theorem-i : {x : ℕ} → (ev : Even-i x) → x == half x * 2
+theorem-i even-zero = refl
+theorem-i (even-succ ev) = cong (succ ∘ succ) (theorem-i ev)
+
+
+
+
+
+
+

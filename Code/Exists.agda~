@@ -1,0 +1,207 @@
+module Code.Exists where
+
+open import Library.Fun
+open import Library.Bool
+open import Library.Nat
+open import Library.Nat.Properties
+open import Library.List
+open import Library.Equality
+open import Library.Logic hiding (∃; ∃-syntax; Σ; fst; snd)
+open import Library.Logic.Laws
+
+
+-- in Agda devo andare a def. l'hiding di alcune cose cosicchè non va in conflitto con la sintassi uguale già inclusa
+
+
+
+-- Funzione di tipi appartiene all'universo Set¹
+
+
+{-
+         A : Set    x : A B : Set
+         ------------------------
+           Π(x : A) B : Set
+
+
+
+
+       a : A      Π a : B [a / x]
+     ------------------------------
+           f : Π(x : A) B                f : ∀ (x : A) (P x)         dove P : A → B
+
+
+                                         a ∈ a → f a : P a
+                                       
+
+    i tipi sigma sono coppie di tipi dipendenti
+
+    
+      (p , q) : Σ(x : A) B
+
+      (p , q a) : ∃ (x : A) (P x) in BHK a ∈ A è un testimone di t.c. q a : P a 
+      
+-}
+
+data Σ (A : Set) (B : A → Set) : Set where
+  _,_ : ∀(x : A) → B x → Σ A B
+
+
+-- il Σ è una geralizzazione del prodotto
+
+_x_ : Set → Set → Set
+A x B = Σ A (λ _ → B)
+
+fst : ∀{A : Set} → {B : A → Set} → Σ A B → A
+fst (x , _) = x
+
+snd : ∀{A : Set} → {B : A → Set} → (p : Σ A B) → B (fst p)
+snd (_ , y) = y
+
+-- Esempi di uso di tipi Σ
+
+
+ℕ⁺ : Set   -- si scrive /bN/^+
+ℕ⁺ = Σ ℕ (λ z → z != 0) -- tipo dei naturali diversi da 0
+
+-- notazione equivalente
+
+-- ℕ⁺ = Σ ℕ (_ != 0)
+
+
+List⁺ : Set → Set
+List⁺ A = Σ (List A) (_!= []) 
+
+head : ∀{A : Set} → List⁺ A → A
+head ([] , y) = ex-falso (y refl) -- [] != [] == ([] == []) → ⊥
+head ((x :: xs) , y) = x
+
+
+-- l'ex-falso ci serve per scaricare non dover trattare i casi impossibili
+
+
+∃ : ∀ {A : Set} (B : A → Set) → Set
+∃ {A} B = Σ A B
+
+∃-syntax = ∃
+syntax ∃-syntax (λ x → B) = ∃[ x ] B
+
+
+
+pred : ∀(p : ℕ⁺) → ∃[ z ] (fst p == succ z)
+pred (zero , y) = ex-falso (y refl)
+pred (succ x , y) = x , refl 
+
+
+-- esprimiamo il predicato di divisibilità
+
+_∣_ : ℕ → ℕ → Set               -- ∣ si scrive /|
+x ∣ y = ∃[ z ] (z * x == y)
+
+
+∣-refl : ∀ x → x ∣ x
+∣-refl x = 1 , *-unit-l x
+
+-- possiamo def. che un numero è pari in modo induttivo
+
+
+-- dim. della transitività
+
+
+open import Library.Equality.Reasoning
+
+⊢trans : ∀(x y z : ℕ) → x ∣ y → y ∣ z → x ∣ z
+⊢trans x y z (p , p1) (q , q1) = q * p , th
+  where
+    th : q * p * x == z
+    th =
+      begin
+        q * p * x
+          ⟨ *-assoc q p x ⟩==
+          q * (p * x) ==⟨ cong (λ z → q * z ) (p1) ⟩
+          q * y ==⟨ q1 ⟩
+          z 
+      end
+
+
+-- p1 : p * x == y
+-- q1 : q * y == z
+-- goal : ∃ r : r * x = z
+
+-- parto da z
+-- z = q * y (uso q1)
+-- (uso y di p1 e la congruenza) z == q * (p * x)
+-- (q * p) * x (*-assoc)
+
+
+
++-succ-neq : ∀{x y : ℕ} → x + succ y != x
++-succ-neq {succ x} {y} h = +-succ-neq (succ-injective h) -- ha tipo ⊥
+
+
+
+
+-- succ-injective è fatto in questa maniera
+-- succ x == succ y → x == y
+
+
+
+
+-- io so che per ip. induttiva
+-- x + succ y != x 
+
+
+
+-- viene escluso il caso x = 0, ovvero impossibile dato che 0 non è uguale a succ y + 0
+
+
+-- cosa vuole dire il != :
+-- significa che (x + succ y == x) → ⊥
+
+
+*-zero-neq-one : ∀(x : ℕ) → x * 0 != 1
+*-zero-neq-one (succ x) hp = (*-zero-neq-one x) hp
+
+
+*-one : ∀(x y : ℕ) → x * y == 1 → x == 1 ∧ y == 1
+*-one (succ x) zero hp = ex-falso ((*-zero-neq-one x) hp)
+*-one (succ zero) (succ zero) hp = refl , refl
+
+-- (succ x) * y == 1 → succ x == 1 ∧ y == 1
+
+
+-- primo caso:
+-- succ x * 0 == 1
+-- uso ex-falso, in quanto voglio provare che usando l'hp arrivo ad un assurdo
+
+
+
+*-same : ∀(x y : ℕ) → x * y == y → x == 1 ∨ y == 0
+*-same zero zero hp = yes refl
+*-same (succ x) zero hp = yes refl
+*-same (succ zero) (succ y) hp = no refl
+*-same (succ (succ x)) (succ y) hp = ex-falso (+-succ-neq k) --  (+-succ-neq {!!}) 
+  where
+    k : y + succ (y + x * succ y) == y
+    k = {!succ-injective  hp!}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
